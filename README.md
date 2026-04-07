@@ -13,6 +13,10 @@
 
 The framework implements a modular approach with three primary concepts: **Assets**, **Generators**, and **Integrations**.
 
+###
+
+Add support for Windows. We revise the generator and add a PowerShell script to run Blender on Windows. Codes are produced by Github Copilot and tested on Windows 10. 
+
 ### Assets
 
 Assets are the registered building blocks that range from simple images and meshes to complex articulated models. Their definitions reside in external repositories that can be shared and reused across projects. Example: [SimForge Foundry](https://github.com/AndrejOrsula/simforge_foundry)

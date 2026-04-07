@@ -246,7 +246,7 @@ class Generator(BaseModel):
     @cached_property
     def mp_context(self) -> multiprocessing.context.BaseContext:
         mp_context = multiprocessing.get_context("spawn")
-        mp_context.set_executable(self.SUBPROC_PYTHON_EXPR[0])
+        mp_context.set_executable(sys.executable)
         return mp_context
 
     def generate_multiprocessing(

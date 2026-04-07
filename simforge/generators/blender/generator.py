@@ -1,4 +1,5 @@
 from functools import cached_property
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Dict, Mapping, Sequence, Tuple
 
@@ -18,13 +19,30 @@ if TYPE_CHECKING:
 class BlGenerator(Generator):
     EXPORTERS: ClassVar[ExporterConfig] = BlModelExporter()
     BAKER: ClassVar[BlBaker] = BlBaker()
-    SUBPROC_PYTHON_EXPR: ClassVar[Sequence[str]] = [
-        Path(simforge.__file__)
-        .parent.joinpath("scripts")
-        .joinpath("blender")
-        .joinpath("python_expr.bash")
-        .as_posix()
-    ]
+    if sys.platform == "win32":
+        SUBPROC_PYTHON_EXPR: ClassVar[Sequence[str]] = [
+            "powershell.exe",
+            "-NoLogo",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(
+                Path(simforge.__file__)
+                .parent.joinpath("scripts")
+                .joinpath("blender")
+                .joinpath("python_expr.ps1")
+            ),
+        ]
+    else:
+        SUBPROC_PYTHON_EXPR: ClassVar[Sequence[str]] = [
+            str(
+                Path(simforge.__file__)
+                .parent.joinpath("scripts")
+                .joinpath("blender")
+                .joinpath("python_expr.bash")
+            )
+        ]
 
     ALWAYS_REALIZE_INSTANCES: ClassVar[bool] = True
 
