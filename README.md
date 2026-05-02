@@ -13,7 +13,7 @@
 
 The framework implements a modular approach with three primary concepts: **Assets**, **Generators**, and **Integrations**.
 
-###
+### For Windows
 
 Add support for Windows. We revise the generator and add a PowerShell script to run Blender on Windows. Codes are produced by Github Copilot and tested on Windows 10. 
 
