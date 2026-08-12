@@ -1,7 +1,6 @@
 from collections.abc import Callable
-from typing import Literal
 
-from isaaclab.utils import configclass
+from isaaclab.utils.configclass import configclass
 
 from simforge.integrations.isaaclab.schemas.impl import set_mesh_collision_properties
 
@@ -10,21 +9,12 @@ from simforge.integrations.isaaclab.schemas.impl import set_mesh_collision_prope
 class MeshCollisionPropertiesCfg:
     func: Callable = set_mesh_collision_properties
 
-    mesh_approximation: (
-        Literal[
-            "none",
-            "convexHull",
-            "convexDecomposition",
-            "meshSimplification",
-            "convexMeshSimplification",
-            "boundingCube",
-            "boundingSphere",
-            "sphereFill",
-            "sdf",
-        ]
-        | None
-    ) = None
-    """Collision approximation to use for the collision shape"""
+    mesh_approximation: str | None = None
+    """Collision approximation to use for the collision shape.
+
+    Supported values: "none", "convexHull", "convexDecomposition",
+    "meshSimplification", "boundingCube", "boundingSphere", "sdf".
+    """
 
     sdf_resolution: int = 128
-    """Resolution of the SDF grid used for collision approximation"""
+    """Resolution of the SDF grid used for collision approximation."""

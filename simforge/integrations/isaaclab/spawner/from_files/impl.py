@@ -1,15 +1,12 @@
-from typing import TYPE_CHECKING, Any, Tuple
+from __future__ import annotations
 
-import isaacsim.core.utils.stage as stage_utils
+from typing import TYPE_CHECKING
+
 from isaaclab.sim import clone
 from isaaclab.sim.spawners.from_files.from_files import (
     spawn_from_usd as __spawn_from_usd,
 )
-from isaaclab.sim.utils import bind_physics_material, create_prim, is_prim_path_valid
-from pxr import Usd, UsdGeom, UsdPhysics
-
-from pxr import PhysxSchema  # isort: skip
-
+from pxr import Usd
 
 if TYPE_CHECKING:
     from simforge.integrations.isaaclab.spawner.from_files.cfg import (
@@ -21,145 +18,23 @@ if TYPE_CHECKING:
 @clone
 def spawn_from_usd(
     prim_path: str,
-    cfg: "UsdFileCfg",
-    translation: Tuple[float, float, float] | None = None,
-    orientation: Tuple[float, float, float, float] | None = None,
+    cfg: UsdFileCfg,
+    translation: tuple[float, float, float] | None = None,
+    orientation: tuple[float, float, float, float] | None = None,
     **kwargs,
 ) -> Usd.Prim:
-    # Get prim
-    if not is_prim_path_valid(prim_path):
-        create_prim(
-            prim_path,
-            usd_path=cfg.usd_path,
-            translation=translation,
-            orientation=orientation,
-            scale=cfg.scale,
-        )
+    """Spawn a USD asset and apply SimForge-specific mesh collision properties.
 
-    # Apply missing APIs
-    _apply_missing_apis(prim_path, cfg)
+    Delegates the heavy lifting (prim creation, rigid/collision/mass/… schemas,
+    material binding) to the upstream
+    :func:`isaaclab.sim.spawners.from_files.from_files.spawn_from_usd`, then
+    applies any ``mesh_collision_props`` afterwards.
+    """
+    # Let the upstream spawner create the prim and apply all standard schemas
+    prim = __spawn_from_usd(prim_path, cfg, translation, orientation, **kwargs)
 
-    # Apply mesh collision API and properties
+    # Apply mesh collision approximation (must happen after collision schemas)
     if cfg.mesh_collision_props is not None:
         cfg.mesh_collision_props.func(prim_path, cfg.mesh_collision_props)
 
-    return __spawn_from_usd(prim_path, cfg, translation, orientation, **kwargs)
-
-
-def _apply_missing_apis(prim_path: str, cfg: "FileCfg"):
-    parent_prim: Usd.Prim = stage_utils.get_current_stage().GetPrimAtPath(prim_path)
-
-    if cfg.articulation_props is not None and not __has_child_with_api(
-        parent_prim,
-        UsdPhysics.ArticulationRootAPI,  # type: ignore
-    ):
-        UsdPhysics.ArticulationRootAPI.Apply(parent_prim)  # type: ignore
-
-    if cfg.physics_material is not None:
-        physics_material_path = f"{prim_path}/physics_material"
-        cfg.physics_material.func(physics_material_path, cfg.physics_material)
-
-    queue = parent_prim.GetChildren()
-    while queue:
-        child_prim = queue.pop(0)
-        queue.extend(child_prim.GetChildren())
-
-        if (
-            cfg.joint_drive_props is not None
-            and (
-                child_prim.IsA(UsdPhysics.Joint)  # type: ignore
-                and not child_prim.IsA(UsdPhysics.FixedJoint)  # type: ignore
-            )
-            and not child_prim.HasAPI(UsdPhysics.DriveAPI)  # type: ignore
-        ):
-            UsdPhysics.DriveAPI.Apply(child_prim, f"{child_prim.GetName()}_drive")  # type: ignore
-
-        else:
-            if child_prim.IsA(UsdGeom.Xform) and (
-                cfg.rigid_props is not None
-                and not __has_child_with_api(
-                    child_prim,
-                    UsdPhysics.RigidBodyAPI,  # type: ignore
-                )
-                and not __has_parent_with_api(
-                    child_prim,
-                    UsdPhysics.RigidBodyAPI,  # type: ignore
-                )
-            ):
-                UsdPhysics.RigidBodyAPI.Apply(child_prim)  # type: ignore
-
-            if child_prim.IsA(UsdGeom.Xformable) and (
-                cfg.mass_props is not None
-                and __has_parent_with_api(
-                    child_prim,
-                    UsdPhysics.RigidBodyAPI,  # type: ignore
-                )
-                and not __has_child_with_api_or_instance(
-                    child_prim,
-                    UsdPhysics.MassAPI,  # type: ignore
-                )
-                and not __has_parent_with_api(
-                    child_prim,
-                    UsdPhysics.MassAPI,  # type: ignore
-                )
-            ):
-                UsdPhysics.MassAPI.Apply(child_prim)  # type: ignore
-
-            if child_prim.IsA(UsdGeom.Gprim):
-                if (
-                    cfg.collision_props is not None
-                    and not __has_child_with_api_or_instance(
-                        child_prim,
-                        UsdPhysics.CollisionAPI,  # type: ignore
-                    )
-                    and not __has_parent_with_api(
-                        child_prim,
-                        UsdPhysics.CollisionAPI,  # type: ignore
-                    )
-                ):
-                    UsdPhysics.CollisionAPI.Apply(child_prim)  # type: ignore
-
-                if (
-                    cfg.deformable_props is not None
-                    and not __has_child_with_api_or_instance(
-                        child_prim,
-                        PhysxSchema.PhysxDeformableBodyAPI,  # type: ignore
-                    )
-                    and not __has_parent_with_api(
-                        child_prim,
-                        PhysxSchema.PhysxDeformableBodyAPI,  # type: ignore
-                    )
-                ):
-                    PhysxSchema.PhysxDeformableBodyAPI.Apply(child_prim)  # type: ignore
-
-                if cfg.physics_material is not None:
-                    bind_physics_material(child_prim.GetPath(), physics_material_path)
-
-
-def __has_parent_with_api(child_prim: Usd.Prim, api_schema: Any) -> bool:
-    prim = child_prim
-    while prim.IsValid():
-        if prim.HasAPI(api_schema):
-            return True
-        prim = prim.GetParent()
-    return False
-
-
-def __has_child_with_api(parent_prim: Usd.Prim, api_schema: Any) -> bool:
-    queue = [parent_prim]
-    while queue:
-        child_prim = queue.pop(0)
-        if child_prim.HasAPI(api_schema):
-            return True
-        queue.extend(child_prim.GetChildren())
-    return False
-
-
-def __has_child_with_api_or_instance(parent_prim: Usd.Prim, api_schema: Any) -> bool:
-    queue = [parent_prim]
-    while queue:
-        child_prim = queue.pop(0)
-        if child_prim.IsInstance() or child_prim.HasAPI(api_schema):
-            return True
-        queue.extend(child_prim.GetChildren())
-    return False
+    return prim

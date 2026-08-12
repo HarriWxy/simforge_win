@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Tuple
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from isaaclab.sim import PreviewSurfaceCfg
 from isaaclab.sim.spawners.wrappers import MultiAssetSpawnerCfg, spawn_multi_asset
@@ -27,9 +29,9 @@ IGNORED_SPAWN_ATTRIBUTES = (
 
 def spawn_simforge_assets(
     prim_path: str,
-    cfg: "SimforgeAssetCfg",
-    translation: Tuple[float, float, float] | None = None,
-    orientation: Tuple[float, float, float, float] | None = None,
+    cfg: SimforgeAssetCfg,
+    translation: tuple[float, float, float] | None = None,
+    orientation: tuple[float, float, float, float] | None = None,
     **kwargs,
 ) -> Usd.Prim:
     # Generate the assets

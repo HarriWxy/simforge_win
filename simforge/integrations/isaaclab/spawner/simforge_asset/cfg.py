@@ -1,8 +1,10 @@
-from collections.abc import Callable
-from dataclasses import MISSING
-from typing import Any, List, Mapping
+from __future__ import annotations
 
-from isaaclab.utils import configclass
+from collections.abc import Callable, Mapping
+from dataclasses import MISSING
+from typing import Any
+
+from isaaclab.utils.configclass import configclass
 
 from simforge import Articulation, Geometry, Model
 from simforge.integrations.isaaclab.spawner.from_files import FileCfg
@@ -15,7 +17,7 @@ from simforge.integrations.isaaclab.spawner.simforge_asset.impl import (
 class SimforgeAssetCfg(FileCfg):
     func: Callable = spawn_simforge_assets
 
-    assets: List[Articulation | Geometry | Model] = MISSING  # type: ignore
+    assets: list[Articulation | Geometry | Model] = MISSING  # type: ignore
     export_kwargs: Mapping[str, Any] = {}
 
     num_assets: int = 1
