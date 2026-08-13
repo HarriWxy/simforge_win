@@ -72,6 +72,9 @@ def spawn_simforge_assets(
     # Create and spawn multi-asset configuration
     if not any(has_material):
         palette = color_palette_hue(cfg.num_assets)
+
+    if ".*" not in prim_path.split("/")[-1]:
+        prim_path = prim_path + ".*"
     return spawn_multi_asset(
         prim_path=prim_path,
         cfg=MultiAssetSpawnerCfg(
